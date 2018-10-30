@@ -1,5 +1,7 @@
 from sklearn.base import BaseEstimator
+
 import svmlight as svm
+
 
 class SvmLightEstimator(BaseEstimator):
     def __init__(self, cost=None, cost_ratio=1.0, biased_hyperplane=False):
@@ -13,7 +15,7 @@ class SvmLightEstimator(BaseEstimator):
         return {'cost': self.svm.cost,
                 'cost_ratio': self.svm.cost_ratio,
                 'biased_hyperplane': self.svm.biased_hyperplane}
-    
+
     def set_params(self, **params):
         if 'cost' in params:
             self.svm.cost = params['cost']
@@ -25,7 +27,7 @@ class SvmLightEstimator(BaseEstimator):
 
     def fit(self, data, class_values):
         self.model = self.svm.learn(data, class_values)
-    
+
     def predict(self, data):
         return [1 if self.model.classify(d) > 0 else -1
                 for d in data]

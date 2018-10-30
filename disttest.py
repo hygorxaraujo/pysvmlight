@@ -1,4 +1,4 @@
-'''Disttest library
+"""Disttest library
 This software is under the MIT license.
 Copyright (c) 2010 Jared Forsyth
 
@@ -26,33 +26,31 @@ usage:
 
 ## example setup.py
 
-from disttest import test
+>>> from disttest import Test
 
-setup(
-    ...
-    cmdclass = {'test': test},
-    options = {
-        'test': {
-            'test_dir':['tests'], # will run all .py files in the tests/ directory
-        }
-    },
-)
-'''
+>>> setup(
+...     cmdclass = {'test': Test},
+...     options = {
+...         'test': {
+...             'test_dir':['tests'], # will run all .py files in the tests/ directory
+...         }
+...     },
+... )
+"""
 
+import os
+import sys
 from distutils.core import Command
 from distutils.errors import DistutilsOptionError
 from distutils.fancy_getopt import longopt_xlate
-import string
-import sys
-from unittest import TestLoader, main
 
 uninitialized = object()
 
-class test(Command):
 
+class Test(Command):
     """Command to run unit tests after in-place build"""
 
-    description = "run unit tests after in-place build"
+    description = 'Run unit tests after in-place build'
 
     user_options = [
         ('test-type=', 't', 'Which test type to use (e.g. py.test, unittest)'),
@@ -61,30 +59,32 @@ class test(Command):
 
     def initialize_options(self):
         self.test_type = 'py.test'
-        for (_,_,_,_,options) in self.test_commands.values():
+        for (_, _, _, _, options) in self.test_commands.values():
             for option in options:
-                name = string.translate(option[0], longopt_xlate).rstrip('=')
+                name = option[0].translate(longopt_xlate).rstrip('=')
                 setattr(self, name, uninitialized)
 
     @classmethod
     def add_type(cls, name, options=(), required=None, defaults={}, validate=None):
         for option in options:
             cls.user_options.append(option)
-        def meta(function):
-            cls.test_commands[name] = function, required, defaults, validate, options
+
+        def meta(func):
+            cls.test_commands[name] = func, required, defaults, validate, options
+
         return meta
 
     def finalize_options(self):
         if self.test_type not in self.test_commands:
             raise DistutilsOptionError('invalid test_type')
-        
+
         function, required, defaults, validate, options = self.test_commands[self.test_type]
         if validate is not None:
             validate(self)
         else:
             for option in options:
-                name = string.translate(option[0], longopt_xlate).rstrip('=')
-                value = getattr(self, name,)
+                name = option[0].translate(longopt_xlate).rstrip('=')
+                value = getattr(self, name, )
                 if value is uninitialized:
                     if name in defaults:
                         setattr(self, name, defaults[name])
@@ -114,38 +114,40 @@ class test(Command):
     def run_tests(self):
         self.test_commands[self.test_type][0](self)
 
-def make_onetest(function):
+
+def make_one_test(func):
     def meta(self):
-        return function()
+        return func()
+
     return meta
 
-def make_testcase(name, functions):
+
+def make_test_case(name, functions):
     import unittest
     suite = unittest.TestSuite()
     cls = type(name, (unittest.TestCase,), {})
     for fn in functions:
-        real = make_onetest(fn)
+        real = make_one_test(fn)
         setattr(cls, fn.__name__, real)
         suite.addTest(cls(fn.__name__))
     return suite
 
-import os
 
-@test.add_type('py.test', options=(
-    ('test-dir=', 'd', 'Direcotry in which to search for tests'),
-    ('test-recursive', 'r', 'Search recursively'),
-    ), defaults={'test_recursive':False})
+@Test.add_type('py.test', options=(
+        ('test-dir=', 'd', 'Directory in which to search for tests'),
+        ('test-recursive', 'r', 'Search recursively'),
+), defaults={'test_recursive': False})
 def run_py_test(tester):
     try:
         import py
     except ImportError:
         py = None
 
-    import glob
     import os
     if type(tester.test_dir) == str:
         tester.test_dir = [tester.test_dir]
     test_files = []
+
     def add_dir(dr):
         for item in os.listdir(dr):
             full = os.path.join(dr, item)
@@ -160,8 +162,8 @@ def run_py_test(tester):
     if py:
         py.test.cmdline.main(test_files)
     else:
-        print 'WARNING: py.test not found. falling back to unittest. For more informative errors, install py.test'
-        print "Running test files: " + " ".join(test_files)
+        print('WARNING: py.test not found. falling back to unittest. For more informative errors, install py.test')
+        print('Running test files: ' + " ".join(test_files))
         import unittest
         suite = unittest.TestSuite()
         loader = unittest.TestLoader()
@@ -171,33 +173,35 @@ def run_py_test(tester):
         t = unittest.TextTestRunner()
         t.run(suite)
 
+
 def get_pyfile(fname):
     import sys
     sys.path.insert(0, os.path.dirname(fname))
     mod = __import__(os.path.basename(fname)[:-3], None, None, ['__doc__'])
     return mod
 
+
 def validate_unittest(tester):
     if tester.test_suite is None:
         if tester.test_modules is None:
             raise DistutilsOptionError(
-                "You must specify a module or a suite"
+                'You must specify a module or a suite'
             )
-        tester.test_suite = self.test_module+".test_suite"
+        tester.test_suite = tester.test_module + '.test_suite'
     elif tester.test_module:
         raise DistutilsOptionError(
-            "You may specify a module or a suite, but not both"
+            'You may specify a module or a suite, but not both'
         )
 
-@test.add_type('unittest', options=(
-        ('test-module=','m', "Run 'test_suite' in specified module"),
-        ('test-suite=','s',
-            "Test suite to run (e.g. 'some_module.test_suite')"),
-    ), validate=validate_unittest)
+
+@Test.add_type('unittest', options=(
+        ('test-module=', 'm', 'Run "test_suite" in specified module'),
+        ('test-suite=', 's',
+         'Test suite to run (e.g. "some_module.test_suite")'),
+), validate=validate_unittest)
 def run_unittest(tester):
     import unittest
     unittest.main(
         None, None, [unittest.__file__, tester.test_suite],
-        testLoader = unittest.TestLoader()
+        testLoader=unittest.TestLoader()
     )
-
