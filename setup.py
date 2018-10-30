@@ -17,6 +17,7 @@ ext_modules = [
 
 setup(
     name='pysvmlight',
+    version='0.1.0',
     cmdclass={'build_ext': build_ext,
               'test': Test},
     ext_modules=cythonize(ext_modules, compiler_directives={'language_level': '3str'}),
