@@ -1,22 +1,24 @@
 from distutils.core import setup
 from distutils.extension import Extension
-from Cython.Distutils import build_ext
-from disttest import test
+
 from Cython.Build import cythonize
+from Cython.Distutils import build_ext
+
+from disttest import Test
 
 ext_modules = [
-    Extension("svmlight",
-              ["src/svmlight.pyx",
-               "lib/svm_common.c",
-               "lib/svm_learn.c",
-               "lib/svm_hideo.c"
+    Extension('svmlight',
+              ['src/svmlight.pyx',
+               'lib/svm_common.c',
+               'lib/svm_learn.c',
+               'lib/svm_hideo.c'
                ],
-              include_dirs=["lib"])]
+              include_dirs=['lib'])]
 
 setup(
-    name='Hello world app',
+    name='pysvmlight',
     cmdclass={'build_ext': build_ext,
-              'test': test},
+              'test': Test},
     ext_modules=cythonize(ext_modules, compiler_directives={'language_level': '3str'}),
     options={'test': {'test_dir': ['test']}}
 )
