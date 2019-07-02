@@ -124,7 +124,8 @@ cdef extern from 'svm_common.h':
         #/* you probably do not want to touch the following */
         double epsilon_const  # tolerable error on eq-constraint */
         double epsilon_a  # tolerable error on alphas at bounds */
-        double opt_precision  # precision of solver, set to e.g. 1e-21 if you get convergence problems */
+        double opt_precision  # precision of solver, set to e.g. 1e-21 if you get convergence
+        # problems */
 
         #/* the following are only for internal use */
         long   svm_c_steps  # do so many steps for finding optimal C */
@@ -149,7 +150,7 @@ cdef extern from 'svm_learn.h':
                                   KERNEL_PARM *kernel_parm, KERNEL_CACHE *kernel_cache,
                                   MODEL *model, double *alpha)
 
-cdef LEARN_PARM get_default_learn_parm():
+cdef LEARN_PARM get_default_learn_parm(float svm_c=0.0):
     cdef LEARN_PARM learn_parm
     learn_parm.biased_hyperplane = 1
     learn_parm.sharedslack = 0
@@ -160,7 +161,7 @@ cdef LEARN_PARM get_default_learn_parm():
     learn_parm.svm_iter_to_shrink = -9999
     learn_parm.maxiter = 100000
     learn_parm.kernel_cache_size = 40
-    learn_parm.svm_c = 0.0
+    learn_parm.svm_c = svm_c
     learn_parm.eps = 0.1
     learn_parm.transduction_posratio = -1.0
     learn_parm.svm_costratio = 1.0
@@ -175,13 +176,17 @@ cdef LEARN_PARM get_default_learn_parm():
     strcpy(learn_parm.predfile, 'trans_predictions')
     return learn_parm
 
-cdef KERNEL_PARM get_default_kernel_parm():
+cdef KERNEL_PARM get_default_kernel_parm(int kernel_type=0,
+                                         int poly_degree=3,
+                                         float rbf_gamma=1.0,
+                                         int coef_lin=1,
+                                         int coef_const=1):
     cdef KERNEL_PARM parm
-    parm.kernel_type = 0
-    parm.poly_degree = 3
-    parm.rbf_gamma = 1.0
-    parm.coef_lin = 1
-    parm.coef_const = 1
+    parm.kernel_type = kernel_type
+    parm.poly_degree = poly_degree
+    parm.rbf_gamma = rbf_gamma
+    parm.coef_lin = coef_lin
+    parm.coef_const = coef_const
     return parm
 
 cdef class SupportVector:
@@ -363,9 +368,19 @@ cdef class Learner:
     cdef KERNEL_PARM _kernel_parameters
     cdef KERNEL_CACHE _kernel_cache
 
-    def __cinit__(self):
-        self._parameters = get_default_learn_parm()
-        self._kernel_parameters = get_default_kernel_parm()
+    def __cinit__(self, str kernel='linear', float svm_c=0.0, int poly_degree=3,
+                  float rbf_gamma=1.0, int coef_lin=1, int coef_const=1):
+        if kernel == 'linear':
+            kernel_type = 0
+        elif kernel == 'poly':
+            kernel_type = 1
+        elif kernel == 'rbf':
+            kernel_type = 2
+        elif kernel == 'sigmoid':
+            kernel_type = 3
+        self._parameters = get_default_learn_parm(svm_c)
+        self._kernel_parameters = get_default_kernel_parm(kernel_type, poly_degree, rbf_gamma,
+                                                          coef_lin, coef_const)
 
     property biased_hyperplane:
         """
