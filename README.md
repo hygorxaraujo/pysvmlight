@@ -1,9 +1,6 @@
 pysvmlight
 ==========
 
-Bismillahi-r-Rahmani-r-Rahim
-In the Name of God, the Merciful, the Compassionate
-
 This is a wrapper for the svmlight library. It allows you to specify
 an unbiased hyperplane. It also allows you to access the learnt
 hyperplane after training.
